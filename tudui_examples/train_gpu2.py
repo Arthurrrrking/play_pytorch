@@ -3,7 +3,7 @@
 网络模型
 数据（输入，标注(即target)）
 损失函数
-三者对象中使用.cuda()转一道，即完成使用GPU进行训练
+先定义一个divice对象，指向使用cpu还是gpu，然后在上面三个对象中使用.to()转一道，即完成使用指定硬件进行训练
 如：
 zz = ZZ()
 zz = zz.cuda()  # 表示使用GPU进行训练
@@ -18,6 +18,12 @@ from torch.nn import Conv2d, MaxPool2d, Flatten, Linear, CrossEntropyLoss
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from torchvision.transforms import ToTensor
+
+# device = torch.device("cpu")
+# if torch.cuda.is_available():
+#     device = torch.device("cuda:0")  # device("cuda:0")方法等价于device("cuda")，但是device("cuda:1")表示使用第二块cpu进行训练，更灵活
+
+divice = torch.device("cuda" if torch.cuda.is_available() else "cpu")  # 这条语句等价于上面三行
 
 # 准备数据集
 train_dataset = torchvision.datasets.CIFAR10("../data", train=True, transform=ToTensor(), download=True)
@@ -51,13 +57,11 @@ class ZZ(nn.Module):
     def forward(self, input):
         return self.model1(input)
 zz = ZZ()
-if torch.cuda.is_available():
-    zz = zz.cuda()
+zz.to(device)
 
 # 损失函数
 loss_fn = CrossEntropyLoss()
-if torch.cuda.is_available():
-    loss_fn = loss_fn.cuda()
+loss_fn.to(device)
 
 # 优化器
 learning_rate = 1e-2  # 1e-2 = 0.01
@@ -79,9 +83,8 @@ for i in range(epoch):
     zz.train()  # 这一句代码非必须，因为train()方法只对部分层生效，比如Dropout层, BatchNorm层
     for data in train_dataloader:
         imgs, target = data
-        if torch.cuda.is_available():
-            imgs = imgs.cuda()
-            target = target.cuda()
+        imgs = imgs.to(device)
+        target = target.to(device)
         output = zz(imgs)
         loss = loss_fn(output, target)
 
@@ -102,9 +105,8 @@ for i in range(epoch):
         zz.eval()   # 这一句代码非必须，因为eval()方法只对部分层生效，比如Dropout层, BatchNorm层
         for data in test_dataloader:
             imgs, target = data
-            if torch.cuda.is_available():
-                imgs = imgs.cuda()
-                target = target.cuda()
+            imgs = imgs.to(device)
+            target = target.to(device)
             output = zz(imgs)
             loss = loss_fn(output, target)
             total_loss += loss.item()
